@@ -25,16 +25,16 @@ function Footer() {
 
           {/* Social Icons */}
           <div className="flex space-x-3 mt-5">
-            <Link to="#" className="bg-gray-800 hover:bg-indigo-600 p-2 rounded-md">
+            <Link to="https://x.com/" className="bg-gray-800 hover:bg-indigo-600 p-2 rounded-md">
               <FaTwitter className="text-white" />
             </Link>
-            <Link to="#" className="bg-gray-800 hover:bg-indigo-600 p-2 rounded-md">
+            <Link to="https://facebook.com/" className="bg-gray-800 hover:bg-indigo-600 p-2 rounded-md">
               <FaFacebookF className="text-white" />
             </Link>
-            <Link to="#" className="bg-gray-800 hover:bg-indigo-600 p-2 rounded-md">
+            <Link to="https://instagram.com/" className="bg-gray-800 hover:bg-indigo-600 p-2 rounded-md">
               <FaInstagram className="text-white" />
             </Link>
-            <Link to="#" className="bg-gray-800 hover:bg-indigo-600 p-2 rounded-md">
+            <Link to="#https://linkedin.com/" className="bg-gray-800 hover:bg-indigo-600 p-2 rounded-md">
               <FaLinkedinIn className="text-white" />
             </Link>
           </div>
