@@ -5,6 +5,7 @@ import Header from './components/Layout/Header';
 
 import { AuthProvider } from './contexts/AuthContext'; 
 import { ThemeProvider } from './contexts/ThemeContext'; 
+import Footer from './components/Layout/Footer';
 
 function App() {
   return (
@@ -13,6 +14,8 @@ function App() {
       <ThemeProvider>
         <Router>
           <Header />
+
+          <Footer/>
         </Router>
       </ThemeProvider>
     </AuthProvider>
