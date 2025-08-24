@@ -1,9 +1,10 @@
 <?php
+
 namespace App\Http\Controllers\Api;
+
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -12,11 +13,15 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    /**
+     * Handle login
+     */
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'email'    => 'required|email',
             'password' => 'required',
+            'role'     => 'required|in:' . implode(',', User::getAllRoles()), // ✅ synced with model
         ]);
 
         if (!Auth::attempt($request->only('email', 'password'))) {
@@ -26,64 +31,90 @@ class AuthController extends Controller
         }
 
         $user = Auth::user();
+
+        // Ensure role matches
+        if ($user->role !== $request->role) {
+            return response()->json(['message' => 'Role mismatch'], 403);
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'user' => $user,
-            'token' => $token,
-            'token_type' => 'Bearer',
-            'message' => 'Login successful',
+            'user'         => $user,
+            'access_token' => $token,   // ✅ matches React
+            'token_type'   => 'Bearer',
+            'message'      => 'Login successful',
         ]);
     }
 
+    /**
+     * Handle registration
+     */
     public function register(Request $request)
     {
+        // ✅ let Laravel handle validation (422 if invalid)
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'sometimes|in:user,admin',
+            'role'     => 'required|in:' . implode(',', User::getAllRoles()),
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => $request->role ?? 'user',
-        ]);
+        try {
+            $user = User::create([
+                'name'     => $request->name,
+                'email'    => $request->email,
+                'password' => Hash::make($request->password),
+                'role'     => $request->role,
+            ]);
 
-        event(new Registered($user));
-        $token = $user->createToken('auth_token')->plainTextToken;
+            event(new Registered($user));
 
-        return response()->json([
-            'user' => $user,
-            'token' => $token,
-            'token_type' => 'Bearer',
-            'message' => 'Registration successful. Please verify your email.',
-        ], 201);
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'user'         => $user,
+                'access_token' => $token,   // ✅ matches React
+                'token_type'   => 'Bearer',
+                'message'      => 'Registration successful. Please verify your email.',
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Registration failed.',
+                'error'   => $e->getMessage(), // ✅ send real error for debugging
+            ], 500);
+        }
     }
 
+    /**
+     * Logout current device
+     */
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Logged out successfully']);
     }
 
+    /**
+     * Logout all devices
+     */
     public function logoutAll(Request $request)
     {
         $request->user()->tokens()->delete();
         return response()->json(['message' => 'Logged out from all devices successfully']);
     }
 
+    /**
+     * Get current user
+     */
     public function user(Request $request)
     {
-        return response()->json([
-            'user' => $request->user(),
-            'role' => $request->user()->role,
-        ]);
+        return response()->json($request->user());
     }
 
-    // Password Reset
+    /**
+     * Forgot password
+     */
     public function forgotPassword(Request $request)
     {
         $request->validate(['email' => 'required|email']);
@@ -97,11 +128,14 @@ class AuthController extends Controller
         return response()->json(['message' => 'Unable to send reset link.'], 422);
     }
 
+    /**
+     * Reset password
+     */
     public function resetPassword(Request $request)
     {
         $request->validate([
-            'token' => 'required',
-            'email' => 'required|email',
+            'token'    => 'required',
+            'email'    => 'required|email',
             'password' => 'required|min:8|confirmed',
         ]);
 
@@ -109,7 +143,7 @@ class AuthController extends Controller
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user, $password) {
                 $user->forceFill(['password' => Hash::make($password)])->save();
-                $user->tokens()->delete(); // Revoke all tokens
+                $user->tokens()->delete(); // revoke all tokens
             }
         );
 
@@ -119,6 +153,4 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Password reset failed.'], 422);
     }
-
-    
 }
