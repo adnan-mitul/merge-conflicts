@@ -1,111 +1,144 @@
-import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useEvents } from '../contexts/EventContext';
-import { Calendar, Download, Star, TrendingUp, Clock, MapPin, Users, Award, Search } from 'lucide-react';
-import EventCard from '../components/Common/EventCard';
-import LoadingSpinner from '../components/Common/LoadingSpinner';
+// src/pages/StudentDashboard.jsx
+import React, { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { useEvents } from "../contexts/EventContext";
+import {
+  Calendar,
+  Download,
+  TrendingUp,
+  Clock,
+  Award,
+  Search,
+} from "lucide-react";
+import EventCard from "../components/Common/EventCard";
+import LoadingSpinner from "../components/Common/LoadingSpinner";
 
+import EventRegisterModal from "../components/Common/EventRegisterModal"; 
+ import jsPDF from "jspdf";
 const StudentDashboard = () => {
   const { user, updateUser } = useAuth();
   const { events, registerForEvent, unregisterFromEvent } = useEvents();
-  const [searchQuery, setSearchQuery] = useState('');
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedEvent, setSelectedEvent] = useState(null); 
+  const registeredEvents = useMemo(() => {
+    if (!user) return [];
+    const registered = user.registeredEvents || []; 
+    return events.filter((event) =>
+      registered.some((reg) => reg.eventId === event.id)
+    );
+  }, [events, user]);
 
-const registeredEvents = useMemo(() => {
-  if (!user) return [];
-  const registered = user.registeredEvents || []; 
-  return events.filter(event => registered.includes(event.id));
-}, [events, user]);
-
-const recommendedEvents = useMemo(() => {
-  if (!user) return [];
-  const registered = user.registeredEvents || [];
-  return events
-    .filter(event => !registered.includes(event.id) && event.status === 'upcoming')
-    .slice(0, 6);
-}, [events, user]);
-
-
+  const recommendedEvents = useMemo(() => {
+    if (!user) return [];
+    const registered = user.registeredEvents || [];
+    return events
+      .filter(
+        (event) =>
+          !registered.some((reg) => reg.eventId === event.id) &&
+          event.status === "upcoming"
+      )
+      .slice(0, 6);
+  }, [events, user]);
 
   const filteredRegisteredEvents = useMemo(() => {
-    return registeredEvents.filter(event =>
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.category.toLowerCase().includes(searchQuery.toLowerCase())
+    return registeredEvents.filter(
+      (event) =>
+        event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.category.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [registeredEvents, searchQuery]);
 
-  const handleRegister = async (eventId) => {
+  const handleRegister = async (eventId, formData) => {
     if (!user) return;
-    
-    const success = registerForEvent(eventId, user.id);
+
+    const success = registerForEvent(eventId, user.id, formData);
     if (success) {
-      const updatedRegisteredEvents = [...user.registeredEvents, eventId];
+      const updatedRegisteredEvents = [
+        ...(user.registeredEvents || []),
+        { eventId, formData }, 
+      ];
       updateUser({ registeredEvents: updatedRegisteredEvents });
     }
   };
+
 
   const handleUnregister = async (eventId) => {
     if (!user) return;
-    
+
     const success = unregisterFromEvent(eventId, user.id);
     if (success) {
-      const updatedRegisteredEvents = user.registeredEvents.filter(id => id !== eventId);
+      const updatedRegisteredEvents = (user.registeredEvents || []).filter(
+        (reg) => reg.eventId !== eventId
+      );
       updateUser({ registeredEvents: updatedRegisteredEvents });
     }
   };
 
-  const downloadCertificate = (eventId) => {
-    const event = events.find(e => e.id === eventId);
-    if (!event || !user) return;
+ 
 
-    const certificateData = {
-      studentName: user.name,
-      eventTitle: event.title,
-      eventDate: event.date,
-      organizationName: 'Eventify',
-      issueDate: new Date().toLocaleDateString()
-    };
+const downloadCertificate = (eventId) => {
+  const event = events.find((e) => e.id === eventId);
+  if (!event || !user) return;
 
-    const certificateContent = `
-CERTIFICATE OF PARTICIPATION
+  const doc = new jsPDF("landscape");
 
-This is to certify that
+  doc.setDrawColor(0);
+  doc.setLineWidth(2);
+  doc.rect(10, 10, 277, 190);
 
-${certificateData.studentName}
+  doc.setFont("times", "bold");
+  doc.setFontSize(28);
+  doc.text("CERTIFICATE OF PARTICIPATION", 148, 40, { align: "center" });
 
-has successfully participated in
+  doc.setFontSize(18);
+  doc.setFont("times", "italic");
+  doc.text("This is proudly presented to", 148, 70, { align: "center" });
 
-${certificateData.eventTitle}
+  doc.setFontSize(26);
+  doc.setFont("times", "bold");
+  doc.text(user.name, 148, 95, { align: "center" });
 
-held on ${new Date(certificateData.eventDate).toLocaleDateString()}
+  doc.setFontSize(16);
+  doc.setFont("times", "normal");
+  doc.text(
+    `For successfully participating in "${event.title}"`,
+    148,
+    120,
+    { align: "center" }
+  );
+  doc.text(
+    `Held on ${new Date(event.date).toLocaleDateString()}`,
+    148,
+    135,
+    { align: "center" }
+  );
 
-Issued by: ${certificateData.organizationName}
-Issue Date: ${certificateData.issueDate}
-    `;
+  doc.setFontSize(14);
+  doc.text("Issued by Eventify", 60, 170);
+  doc.text(`Issue Date: ${new Date().toLocaleDateString()}`, 220, 170);
 
-    const blob = new Blob([certificateContent], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${event.title.replace(/[^a-zA-Z0-9]/g, '_')}_Certificate.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  };
+  doc.save(`${event.title.replace(/[^a-zA-Z0-9]/g, "_")}_Certificate.pdf`);
+};
+
+
 
   if (!user) {
     return <LoadingSpinner text="Loading dashboard..." />;
   }
 
-  const completedEvents = registeredEvents.filter(event => event.status === 'completed').length;
-  const upcomingEvents = registeredEvents.filter(event => event.status === 'upcoming').length;
+  const completedEvents = registeredEvents.filter(
+    (event) => event.status === "completed"
+  ).length;
+  const upcomingEvents = registeredEvents.filter(
+    (event) => event.status === "upcoming"
+  ).length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-     
+
       <div className="mb-8">
         <div className="flex items-center space-x-4 mb-6">
           <img
@@ -127,7 +160,9 @@ Issue Date: ${certificateData.issueDate}
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">Total Registered</p>
+                <p className="text-blue-100 text-sm font-medium">
+                  Total Registered
+                </p>
                 <p className="text-3xl font-bold">{registeredEvents.length}</p>
               </div>
               <Calendar className="w-8 h-8 text-blue-200" />
@@ -157,7 +192,9 @@ Issue Date: ${certificateData.issueDate}
           <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-6 text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm font-medium">Certificates</p>
+                <p className="text-purple-100 text-sm font-medium">
+                  Certificates
+                </p>
                 <p className="text-3xl font-bold">{completedEvents}</p>
               </div>
               <Download className="w-8 h-8 text-purple-200" />
@@ -165,6 +202,7 @@ Issue Date: ${certificateData.issueDate}
           </div>
         </div>
       </div>
+
 
       <section className="mb-12">
         <div className="flex items-center justify-between mb-6">
@@ -194,7 +232,8 @@ Issue Date: ${certificateData.issueDate}
                   No Events Yet
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  You haven't registered for any events yet. Explore our amazing events below!
+                  You haven't registered for any events yet. Explore our amazing
+                  events below!
                 </p>
                 <Link
                   to="/"
@@ -217,30 +256,54 @@ Issue Date: ${certificateData.issueDate}
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredRegisteredEvents.map((event) => (
-              <div key={event.id} className="relative">
-                <EventCard
-                  event={event}
-                  showActions={true}
-                  onUnregister={handleUnregister}
-                  isRegistered={true}
-                />
-                {event.status === 'completed' && (
-                  <div className="mt-4">
-                    <button
-                      onClick={() => downloadCertificate(event.id)}
-                      className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors duration-200"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span className="font-medium">Download Certificate</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
+            {filteredRegisteredEvents.map((event) => {
+              const reg = user.registeredEvents.find(
+                (r) => r.eventId === event.id
+              );
+
+              return (
+                <div key={event.id} className="relative">
+                  <EventCard
+                    event={event}
+                    showActions={true}
+                    onUnregister={handleUnregister}
+                    isRegistered={true}
+                  />
+
+                  {reg?.formData && (
+                    <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
+                      <p>
+                        <strong>Phone:</strong> {reg.formData.phone}
+                      </p>
+                      <p>
+                        <strong>Department:</strong> {reg.formData.department}
+                      </p>
+                      <p>
+                        <strong>Year:</strong> {reg.formData.year}
+                      </p>
+                    </div>
+                  )}
+
+                  {event.status === "completed" && (
+                    <div className="mt-4">
+                      <button
+                        onClick={() => downloadCertificate(event.id)}
+                        className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors duration-200"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span className="font-medium">
+                          Download Certificate
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>
+
 
       {recommendedEvents.length > 0 && (
         <section>
@@ -257,7 +320,7 @@ Issue Date: ${certificateData.issueDate}
                 key={event.id}
                 event={event}
                 showActions={true}
-                onRegister={handleRegister}
+                onRegisterClick={(ev) => setSelectedEvent(ev)}
                 isRegistered={false}
               />
             ))}
@@ -273,6 +336,17 @@ Issue Date: ${certificateData.issueDate}
           </div>
         </section>
       )}
+      {selectedEvent && (
+  <EventRegisterModal
+    event={selectedEvent}
+    onClose={() => setSelectedEvent(null)}
+    onSubmit={(eventId, formData) => {
+      handleRegister(eventId, formData);
+      setSelectedEvent(null); 
+    }}
+  />
+)}
+
     </div>
   );
 };
