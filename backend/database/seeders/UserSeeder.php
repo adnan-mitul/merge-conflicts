@@ -23,7 +23,7 @@ class UserSeeder extends Seeder
                 'email' => "user{$i}@example.com",
                 'email_verified_at' => now(), // verified email
                 'password' => Hash::make('password123'), // plain password = password123
-                'role' => $i % 5 === 0 ? 'admin' : 'user', // every 5th user is admin
+                'role' => $i % 10  === 0 ? 'admin' : 'student', // every 5th user is admin
                 'remember_token' => Str::random(10),
                 'created_at' => now(),
                 'updated_at' => now(),
