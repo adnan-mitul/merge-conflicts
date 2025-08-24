@@ -151,21 +151,7 @@ const AuthPage = () => {
         </div>
 
 
-        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-          <p className="text-sm text-blue-800 dark:text-blue-300 mb-3 text-center font-medium">
-            Quick Demo Login:
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => quickLogin('student')} className="flex items-center justify-center space-x-2 px-3 py-2 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors duration-200">
-              <UserCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Student</span>
-            </button>
-            <button onClick={() => quickLogin('admin')} className="flex items-center justify-center space-x-2 px-3 py-2 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors duration-200">
-              <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Admin</span>
-            </button>
-          </div>
-        </div>
+     
 
   
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8">

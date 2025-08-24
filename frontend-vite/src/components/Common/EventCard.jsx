@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Calendar,
   Clock,
@@ -19,6 +19,8 @@ const EventCard = ({
   onUnregister,
   isRegistered = false,
 }) => {
+  const navigate = useNavigate();
+
   const formatDate = (dateString) => {
     try {
       return format(parseISO(dateString), "MMM dd, yyyy");
@@ -30,7 +32,6 @@ const EventCard = ({
   const formatTime = (timeString) => {
     if (!timeString) return "";
     try {
-      // Handle both HH:mm and HH:mm:ss formats
       const timeParts = timeString.split(":");
       const hours = parseInt(timeParts[0]);
       const minutes = timeParts[1];
@@ -80,10 +81,8 @@ const EventCard = ({
     );
   };
 
-  // Get event image URL - handle both file uploads and default images
   const getEventImage = () => {
     if (event.event_image) {
-      // If it's a file path from the server, construct full URL
       if (
         typeof event.event_image === "string" &&
         !event.event_image.startsWith("http")
@@ -92,32 +91,28 @@ const EventCard = ({
       }
       return event.event_image;
     }
-    // Fallback to a default image
     return "https://images.pexels.com/photos/1181673/pexels-photo-1181673.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&dpr=1";
   };
 
-  // Get location display text based on type
   const getLocationDisplay = () => {
-    if (event.location_type === "virtual") {
-      return "Virtual Event";
-    }
+    if (event.location_type === "virtual") return "Virtual Event";
     return event.location;
   };
 
-  // Get location icon based on type
-  const getLocationIcon = () => {
-    return event.location_type === "virtual" ? Globe : Building;
-  };
+  const getLocationIcon = () =>
+    event.location_type === "virtual" ? Globe : Building;
 
-  // Handle registration counts - use 0 if not provided
   const registeredCount = event.registered || 0;
   const registrationPercentage = (registeredCount / event.capacity) * 100;
-
   const LocationIcon = getLocationIcon();
+
+  // **New: navigate to EventRegister page with event ID**
+  const goToRegisterPage = () => {
+    navigate(`/register-event/${event.id}`);
+  };
 
   return (
     <div className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 dark:border-gray-700 hover:scale-105">
-      {/* Event Image */}
       <div className="relative overflow-hidden">
         <img
           src={getEventImage()}
@@ -157,7 +152,6 @@ const EventCard = ({
         )}
       </div>
 
-      {/* Event Content */}
       <div className="p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
           {event.title}
@@ -167,7 +161,6 @@ const EventCard = ({
           {event.description}
         </p>
 
-        {/* Event Details */}
         <div className="space-y-2 mb-4">
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
             <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
@@ -188,7 +181,6 @@ const EventCard = ({
           </div>
         </div>
 
-        {/* Registration Progress */}
         <div className="mb-4">
           <div className="flex items-center justify-between text-sm mb-2">
             <div className="flex items-center text-gray-600 dark:text-gray-400">
@@ -209,7 +201,6 @@ const EventCard = ({
           </div>
         </div>
 
-        {/* Event Features */}
         <div className="flex flex-wrap gap-1 mb-4">
           {(event.event_features || []).slice(0, 3).map((feature, index) => (
             <span
@@ -235,26 +226,14 @@ const EventCard = ({
             View Details
           </Link>
 
-          {showActions && (
-            <div>
-              {isRegistered ? (
-                <button
-                  onClick={() => onUnregister?.(event.id)}
-                  className="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors duration-200"
-                >
-                  Unregister
-                </button>
-              ) : (
-                <button
-                  onClick={() => onRegister?.(event.id)}
-                  disabled={registeredCount >= event.capacity}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  {registeredCount >= event.capacity ? "Full" : "Register"}
-                </button>
-              )}
-            </div>
-          )}
+          {/* New: Register button */}
+          <button
+            onClick={goToRegisterPage}
+            disabled={registeredCount >= event.capacity}
+            className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-700 text-white text-sm font-medium rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          >
+            {registeredCount >= event.capacity ? "Full" : "Register"}
+          </button>
         </div>
       </div>
     </div>
