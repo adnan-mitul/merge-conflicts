@@ -36,4 +36,16 @@ class Event extends Model
     {
         return $this->event_image ? asset('storage/events/' . $this->event_image) : null;
     }
+    public function registrations()
+    {
+        return $this->hasMany(EventRegistration::class);
+    }
+
+    // Optional: Add a method to get registration count
+    public function getRegistrationCountAttribute()
+    {
+        return $this->registrations()->count();
+    }
+    // One event has many registrations
+    
 }

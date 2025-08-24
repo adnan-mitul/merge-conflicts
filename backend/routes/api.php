@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\EventController;
+use App\Http\Controllers\Api\EventRegistrationController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes (Token-based Sanctum)
@@ -23,6 +25,12 @@ Route::prefix('auth')->group(function () {
     Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
         ->middleware(['signed'])->name('verification.verify');
 });
+
+Route::get('/events/available', [EventRegistrationController::class, 'getAvailableEvents']);
+Route::post('/event-registrations', [EventRegistrationController::class, 'store']);
+Route::post('/event-registrations/unregister', [EventRegistrationController::class, 'unregister']);
+Route::post('/event-registrations/check', [EventRegistrationController::class, 'checkRegistration']);
+
 
 // -------- Protected (Bearer token) --------
 Route::middleware('auth:sanctum')->group(function () {
@@ -45,4 +53,11 @@ Route::middleware(['auth:sanctum', 'admin.only'])->group(function () {
     Route::get('/events/{event}', [EventController::class, 'show']);
     Route::put('/events/{event}', [EventController::class, 'update']);
     Route::delete('/events/{event}', [EventController::class, 'destroy']);
+    // Registration management
+    Route::get('/admin/events/{event}/registrations', [EventRegistrationController::class, 'getEventRegistrations']);
+    Route::get('/admin/registrations/{registration}', [EventRegistrationController::class, 'show']);
+    Route::put('/admin/registrations/{registration}', [EventRegistrationController::class, 'update']);
+    Route::delete('/admin/registrations/{registration}', [EventRegistrationController::class, 'destroy']);
+
+
 });

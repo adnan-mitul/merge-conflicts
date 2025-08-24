@@ -12,6 +12,8 @@ import StudentDashboard from './pages/StudentDashboard';
 import EventDetail from './pages/EventDetail';
 import CreateEvent from './pages/CreateEvent';
 import EditEvent from './pages/EditEvent';
+import EventRegister from "./pages/EventRegister";
+import EventRegistrationsList from "./pages/EventRegistrationsList";
 
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { user, loading } = useAuth();
@@ -46,7 +48,10 @@ const AppRoutes = () => {
               !user ? (
                 <AuthPage />
               ) : (
-                <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace />
+                <Navigate
+                  to={user.role === "admin" ? "/admin" : "/dashboard"}
+                  replace
+                />
               )
             }
           />
@@ -59,6 +64,18 @@ const AppRoutes = () => {
               </ProtectedRoute>
             }
           />
+          {/* Public Event Registration */}
+          {/* Admin-only Event Registrations List */}
+          <Route
+            path="/admin/registrations"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <EventRegistrationsList />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/register-event/:id" element={<EventRegister />} />
+
           <Route
             path="/admin/*"
             element={
