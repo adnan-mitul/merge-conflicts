@@ -1,204 +1,274 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import axios from "axios";
 
 const EventContext = createContext(null);
+
+const API_URL = "http://127.0.0.1:8000/api";
 
 export const useEvents = () => {
   const context = useContext(EventContext);
   if (!context) {
-    throw new Error('useEvents must be used within an EventProvider');
+    throw new Error("useEvents must be used within an EventProvider");
   }
   return context;
 };
 
-const mockEvents = [
-  {
-    id: '1',
-    title: 'Tech Innovation Summit 2024',
-    description: 'Join industry leaders as they discuss the future of technology, AI advancements, and digital transformation strategies. This comprehensive summit features keynote speeches, panel discussions, and networking opportunities.',
-    date: '2024-03-15',
-    time: '09:00',
-    location: 'Tech Convention Center, Hall A',
-    category: 'Technology',
-    capacity: 500,
-    registered: 342,
-    image: 'https://images.pexels.com/photos/1181673/pexels-photo-1181673.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&dpr=1',
-    organizer: 'Tech Forward Inc.',
-    adminId: 'admin1',
-    status: 'upcoming',
-    features: ['Live Streaming', 'Networking Session', 'Certificate', 'Lunch Included'],
-    createdAt: '2024-01-15T10:00:00Z'
-  },
-  {
-    id: '2',
-    title: 'Digital Marketing Masterclass',
-    description: 'Master the art of digital marketing with hands-on workshops covering SEO, social media marketing, content creation, and analytics. Perfect for beginners and intermediate marketers.',
-    date: '2024-03-20',
-    time: '14:00',
-    location: 'Business Center, Room 205',
-    category: 'Marketing',
-    capacity: 150,
-    registered: 89,
-    image: 'https://images.pexels.com/photos/265087/pexels-photo-265087.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&dpr=1',
-    organizer: 'Digital Marketing Pro',
-    adminId: 'admin1',
-    status: 'upcoming',
-    features: ['Hands-on Workshop', 'Course Materials', 'Certificate', 'Q&A Session'],
-    createdAt: '2024-01-20T09:30:00Z'
-  },
-  {
-    id: '3',
-    title: 'Sustainable Energy Conference',
-    description: 'Explore renewable energy solutions, sustainable practices, and environmental policies. Features presentations from leading environmental scientists and policy makers.',
-    date: '2024-03-25',
-    time: '10:00',
-    location: 'Green Campus Auditorium',
-    category: 'Environment',
-    capacity: 300,
-    registered: 156,
-    image: 'https://images.pexels.com/photos/9800029/pexels-photo-9800029.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&dpr=1',
-    organizer: 'EcoFuture Organization',
-    adminId: 'admin1',
-    status: 'upcoming',
-    features: ['Expert Panel', 'Eco-friendly Materials', 'Certificate', 'Plant Giveaway'],
-    createdAt: '2024-02-01T11:15:00Z'
-  },
-  {
-    id: '4',
-    title: 'Startup Pitch Competition',
-    description: 'Watch promising startups pitch their innovative ideas to a panel of investors and industry experts. Great networking opportunity for entrepreneurs and investors.',
-    date: '2024-04-02',
-    time: '18:00',
-    location: 'Innovation Hub, Main Stage',
-    category: 'Business',
-    capacity: 200,
-    registered: 178,
-    image: 'https://images.pexels.com/photos/3183197/pexels-photo-3183197.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&dpr=1',
-    organizer: 'Startup Accelerator',
-    adminId: 'admin1',
-    status: 'upcoming',
-    features: ['Competition', 'Networking', 'Prize Money', 'Investor Meetup'],
-    createdAt: '2024-02-05T16:45:00Z'
-  },
-  {
-    id: '5',
-    title: 'AI & Machine Learning Workshop',
-    description: 'Hands-on workshop covering fundamental concepts of AI and machine learning. Build your first ML model and understand practical applications in various industries.',
-    date: '2024-04-10',
-    time: '09:00',
-    location: 'Computer Lab, Building C',
-    category: 'Technology',
-    capacity: 80,
-    registered: 67,
-    image: 'https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&dpr=1',
-    organizer: 'AI Research Institute',
-    adminId: 'admin1',
-    status: 'upcoming',
-    features: ['Hands-on Coding', 'Take-home Project', 'Certificate', 'Refreshments'],
-    createdAt: '2024-02-10T13:20:00Z'
-  },
-  {
-    id: '6',
-    title: 'Creative Design Bootcamp',
-    description: 'Intensive 3-day bootcamp covering UI/UX design, graphic design principles, and design thinking methodology. Perfect for aspiring designers and creatives.',
-    date: '2024-04-15',
-    time: '09:00',
-    location: 'Design Studio, Art Building',
-    category: 'Design',
-    capacity: 120,
-    registered: 95,
-    image: 'https://images.pexels.com/photos/196644/pexels-photo-196644.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&dpr=1',
-    organizer: 'Creative Minds Studio',
-    adminId: 'admin1',
-    status: 'upcoming',
-    features: ['3-day Intensive', 'Design Tools', 'Portfolio Review', 'Certificate'],
-    createdAt: '2024-02-12T10:30:00Z'
-  }
-];
-
 export const EventProvider = ({ children }) => {
   const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
+  // Helper: get auth headers with token
+  const getAuthHeaders = (isMultipart = false) => {
+    const token = localStorage.getItem("token");
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(isMultipart && { "Content-Type": "multipart/form-data" }),
+      },
+    };
+  };
+
+  // Fetch all events
+  const fetchEvents = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(`${API_URL}/events`, getAuthHeaders());
+      setEvents(response.data.data || response.data);
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch events";
+      setError(errorMessage);
+      console.error("Failed to fetch events:", error.response?.data || error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load events on mount
   useEffect(() => {
-    const savedEvents = localStorage.getItem('eventify_events');
-    if (savedEvents) {
-      setEvents(JSON.parse(savedEvents));
-    } else {
-      setEvents(mockEvents);
-      localStorage.setItem('eventify_events', JSON.stringify(mockEvents));
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetchEvents();
     }
   }, []);
 
-  const saveEvents = (newEvents) => {
-    setEvents(newEvents);
-    localStorage.setItem('eventify_events', JSON.stringify(newEvents));
-  };
+  // Add new event
+  const addEvent = async (eventData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const formData = new FormData();
 
-  const addEvent = (eventData) => {
-    const newEvent = {
-      ...eventData,
-      id: Date.now().toString(),
-      registered: 0,
-      createdAt: new Date().toISOString()
-    };
-    const newEvents = [...events, newEvent];
-    saveEvents(newEvents);
-  };
+      Object.keys(eventData).forEach((key) => {
+        if (key === "event_features" && Array.isArray(eventData[key])) {
+          eventData[key].forEach((feature, index) => {
+            formData.append(`event_features[${index}]`, feature);
+          });
+        } else if (key === "event_image" && eventData[key]) {
+          formData.append(key, eventData[key]);
+        } else if (eventData[key] !== null && eventData[key] !== undefined) {
+          formData.append(key, eventData[key]);
+        }
+      });
 
-  const updateEvent = (id, eventData) => {
-    const newEvents = events.map(event =>
-      event.id === id ? { ...event, ...eventData } : event
-    );
-    saveEvents(newEvents);
-  };
-
-  const deleteEvent = (id) => {
-    const newEvents = events.filter(event => event.id !== id);
-    saveEvents(newEvents);
-  };
-
-  const registerForEvent = (eventId, userId) => {
-    const event = events.find(e => e.id === eventId);
-    if (event && event.registered < event.capacity) {
-      const newEvents = events.map(e =>
-        e.id === eventId ? { ...e, registered: e.registered + 1 } : e
+      const response = await axios.post(
+        `${API_URL}/events`,
+        formData,
+        getAuthHeaders(true)
       );
-      saveEvents(newEvents);
-      return true;
+
+      const newEvent = response.data.data || response.data;
+      setEvents((prevEvents) => [...prevEvents, newEvent]);
+      return { success: true, event: newEvent };
+    } catch (error) {
+      const backendErrors = error.response?.data?.errors;
+      const backendMessage = error.response?.data?.message || error.message;
+      const errorMessage = backendErrors
+        ? Object.values(backendErrors).flat().join(", ")
+        : backendMessage || "Failed to create event";
+
+      setError(errorMessage);
+      console.error("Failed to add event:", error.response?.data || error);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
     }
-    return false;
   };
 
-  const unregisterFromEvent = (eventId, userId) => {
-    const event = events.find(e => e.id === eventId);
-    if (event && event.registered > 0) {
-      const newEvents = events.map(e =>
-        e.id === eventId ? { ...e, registered: Math.max(0, e.registered - 1) } : e
+  // Update existing event
+  const updateEvent = async (id, eventData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append("_method", "PUT");
+
+      Object.keys(eventData).forEach((key) => {
+        if (key === "event_features" && Array.isArray(eventData[key])) {
+          eventData[key].forEach((feature, index) => {
+            formData.append(`event_features[${index}]`, feature);
+          });
+        } else if (key === "event_image" && eventData[key]) {
+          formData.append(key, eventData[key]);
+        } else if (eventData[key] !== null && eventData[key] !== undefined) {
+          formData.append(key, eventData[key]);
+        }
+      });
+
+      const response = await axios.post(
+        `${API_URL}/events/${id}`,
+        formData,
+        getAuthHeaders(true)
       );
-      saveEvents(newEvents);
-      return true;
+
+      const updatedEvent = response.data.data || response.data;
+      setEvents((prevEvents) =>
+        prevEvents.map((event) => (event.id === id ? updatedEvent : event))
+      );
+      return { success: true, event: updatedEvent };
+    } catch (error) {
+      const backendErrors = error.response?.data?.errors;
+      const backendMessage = error.response?.data?.message || error.message;
+      const errorMessage = backendErrors
+        ? Object.values(backendErrors).flat().join(", ")
+        : backendMessage || "Failed to update event";
+
+      setError(errorMessage);
+      console.error("Failed to update event:", error.response?.data || error);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
     }
-    return false;
   };
 
-  const getEventById = (id) => {
-    return events.find(event => event.id === id);
+  // Delete event
+  const deleteEvent = async (id) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await axios.delete(`${API_URL}/events/${id}`, getAuthHeaders());
+      setEvents((prevEvents) => prevEvents.filter((event) => event.id !== id));
+      return { success: true };
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to delete event";
+      setError(errorMessage);
+      console.error("Failed to delete event:", error.response?.data || error);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // Get single event by ID
+  const getEventById = async (id) => {
+    const existingEvent = events.find((event) => event.id === id);
+    if (existingEvent) {
+      return existingEvent;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(
+        `${API_URL}/events/${id}`,
+        getAuthHeaders()
+      );
+      const event = response.data.data || response.data;
+
+      setEvents((prevEvents) => {
+        const eventExists = prevEvents.find((e) => e.id === id);
+        return eventExists
+          ? prevEvents.map((e) => (e.id === id ? event : e))
+          : [...prevEvents, event];
+      });
+
+      return event;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch event";
+      setError(errorMessage);
+      console.error("Failed to fetch event:", error.response?.data || error);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Dummy register/unregister functions (need backend endpoints later)
+  const registerForEvent = async (eventId, userId) => {
+    try {
+      const event = events.find((e) => e.id === eventId);
+      if (event && event.registered < event.capacity) {
+        setEvents((prevEvents) =>
+          prevEvents.map((e) =>
+            e.id === eventId ? { ...e, registered: e.registered + 1 } : e
+          )
+        );
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Failed to register for event:", error);
+      return false;
+    }
+  };
+
+  const unregisterFromEvent = async (eventId, userId) => {
+    try {
+      const event = events.find((e) => e.id === eventId);
+      if (event && event.registered > 0) {
+        setEvents((prevEvents) =>
+          prevEvents.map((e) =>
+            e.id === eventId
+              ? { ...e, registered: Math.max(0, e.registered - 1) }
+              : e
+          )
+        );
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Failed to unregister from event:", error);
+      return false;
+    }
+  };
+
+  // Get user's registered events
   const getUserEvents = (userId, registeredEvents) => {
-    return events.filter(event => registeredEvents.includes(event.id));
+    return events.filter((event) => registeredEvents.includes(event.id));
+  };
+
+  // Clear error
+  const clearError = () => {
+    setError(null);
   };
 
   return (
-    <EventContext.Provider value={{
-      events,
-      addEvent,
-      updateEvent,
-      deleteEvent,
-      registerForEvent,
-      unregisterFromEvent,
-      getEventById,
-      getUserEvents
-    }}>
+    <EventContext.Provider
+      value={{
+        events,
+        loading,
+        error,
+        fetchEvents,
+        addEvent,
+        updateEvent,
+        deleteEvent,
+        getEventById,
+        registerForEvent,
+        unregisterFromEvent,
+        getUserEvents,
+        clearError,
+      }}
+    >
       {children}
     </EventContext.Provider>
   );
