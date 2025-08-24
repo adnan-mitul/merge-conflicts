@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import axios from 'axios';
 
 const AuthContext = createContext(null);
+const API_URL = 'http://127.0.0.1:8000/api/auth';
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -12,85 +14,87 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token') || '');
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('eventify_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      fetchUser();
     }
-  }, []);
+  }, [token]);
 
-  const login = async (email, password, role) => {
-
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-
-    const mockUsers = [
-      {
-        id: 'admin1',
-        name: 'John Admin',
-        email: 'admin@eventify.com',
-        role: 'admin',
-        avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=1',
-        registeredEvents: [],
-        createdAt: '2024-01-15'
-      },
-      {
-        id: 'student1',
-        name: 'Alice Student',
-        email: 'student@eventify.com',
-        role: 'student',
-        avatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=1',
-        registeredEvents: ['1', '3'],
-        createdAt: '2024-02-10'
-      }
-    ];
-
-    const foundUser = mockUsers.find(u => u.email === email && u.role === role);
-    
-    if (foundUser) {
-      setUser(foundUser);
-      localStorage.setItem('eventify_user', JSON.stringify(foundUser));
-      return true;
+  const fetchUser = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/user`);
+      setUser(response.data);
+    } catch (error) {
+      console.error('Failed to fetch user:', error);
+      setUser(null);
+      setToken('');
+      localStorage.removeItem('token');
+      delete axios.defaults.headers.common['Authorization'];
     }
-    
-    return false;
   };
 
-  const register = async (name, email, password, role) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const newUser = {
-      id: Date.now().toString(),
-      name,
-      email,
-      role,
-      avatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=1',
-      registeredEvents: [],
-      createdAt: new Date().toISOString()
-    };
+  const login = async (email, password, role) => {
+    try {
+      const response = await axios.post(`${API_URL}/login`, { email, password, role });
 
-    setUser(newUser);
-    localStorage.setItem('eventify_user', JSON.stringify(newUser));
-    return true;
+      const { user, access_token } = response.data;
+      localStorage.setItem('token', access_token);
+      setToken(access_token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      setUser(user);
+      return true;
+    } catch (error) {
+      const backendMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message;
+      console.error('Login failed:', backendMessage);
+      return backendMessage;
+    }
+  };
+
+  const register = async (name, email, password, confirmPassword, role) => {
+    try {
+      const response = await axios.post(`${API_URL}/register`, {
+        name,
+        email,
+        password,
+        password_confirmation: confirmPassword,
+        role,
+      });
+
+      const { user, access_token } = response.data;
+      localStorage.setItem('token', access_token);
+      setToken(access_token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      setUser(user);
+      return true;
+    } catch (error) {
+      const backendErrors = error.response?.data?.errors;
+      const backendMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message;
+      const firstError = backendErrors
+        ? Object.values(backendErrors)[0][0]
+        : backendMessage;
+      console.error('Registration failed:', firstError);
+      return firstError;
+    }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('eventify_user');
-  };
-
-  const updateUser = (userData) => {
-    if (user) {
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
-      localStorage.setItem('eventify_user', JSON.stringify(updatedUser));
-    }
+    setToken('');
+    localStorage.removeItem('token');
+    delete axios.defaults.headers.common['Authorization'];
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

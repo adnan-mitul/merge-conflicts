@@ -11,21 +11,23 @@ const StudentDashboard = () => {
   const { events, registerForEvent, unregisterFromEvent } = useEvents();
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Get user's registered events
-  const registeredEvents = useMemo(() => {
-    if (!user) return [];
-    return events.filter(event => user.registeredEvents.includes(event.id));
-  }, [events, user]);
 
-  // Get recommended events (not registered)
-  const recommendedEvents = useMemo(() => {
-    if (!user) return [];
-    return events
-      .filter(event => !user.registeredEvents.includes(event.id) && event.status === 'upcoming')
-      .slice(0, 6);
-  }, [events, user]);
+const registeredEvents = useMemo(() => {
+  if (!user) return [];
+  const registered = user.registeredEvents || []; 
+  return events.filter(event => registered.includes(event.id));
+}, [events, user]);
 
-  // Filter events based on search
+const recommendedEvents = useMemo(() => {
+  if (!user) return [];
+  const registered = user.registeredEvents || [];
+  return events
+    .filter(event => !registered.includes(event.id) && event.status === 'upcoming')
+    .slice(0, 6);
+}, [events, user]);
+
+
+
   const filteredRegisteredEvents = useMemo(() => {
     return registeredEvents.filter(event =>
       event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -98,13 +100,12 @@ Issue Date: ${certificateData.issueDate}
     return <LoadingSpinner text="Loading dashboard..." />;
   }
 
-  // Calculate stats
   const completedEvents = registeredEvents.filter(event => event.status === 'completed').length;
   const upcomingEvents = registeredEvents.filter(event => event.status === 'upcoming').length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header Section */}
+     
       <div className="mb-8">
         <div className="flex items-center space-x-4 mb-6">
           <img
@@ -122,7 +123,6 @@ Issue Date: ${certificateData.issueDate}
           </div>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
             <div className="flex items-center justify-between">
@@ -166,7 +166,6 @@ Issue Date: ${certificateData.issueDate}
         </div>
       </div>
 
-      {/* My Registered Events */}
       <section className="mb-12">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -243,7 +242,6 @@ Issue Date: ${certificateData.issueDate}
         )}
       </section>
 
-      {/* Recommended Events */}
       {recommendedEvents.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-6">

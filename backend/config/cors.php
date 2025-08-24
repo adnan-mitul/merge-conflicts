@@ -2,33 +2,25 @@
 
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | Cross-Origin Resource Sharing (CORS) Configuration
-    |--------------------------------------------------------------------------
-    |
-    | Here you may configure your settings for cross-origin resource sharing
-    | or "CORS". This determines what cross-origin operations may execute
-    | in web browsers. You are free to adjust these settings as needed.
-    |
-    | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
-    |
-    */
-
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
-
+    'paths' => ['api/*'], // no need for sanctum/csrf-cookie for Bearer tokens
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:3000'],
+    // Put your React dev origins here:
+    'allowed_origins' => [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+    ],
 
     'allowed_origins_patterns' => [],
-
     'allowed_headers' => ['*'],
 
-    'exposed_headers' => [],
+    // You will read the token from the Authorization header on the client.
+    'exposed_headers' => ['Authorization'],
+
+    // CRITICAL: set to false since we aren't using cookies/sessions for API
+    'supports_credentials' => false,
 
     'max_age' => 0,
-
-    'supports_credentials' => true,
-
 ];

@@ -1,4 +1,3 @@
-//App
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -8,11 +7,12 @@ import Header from './components/Layout/Header';
 import Footer from './components/Layout/Footer';
 import Homepage from './Pages/Homepage';
 import AuthPage from './pages/AuthPage';
-import AdminDashboard from './pages/Admindashboard.jsx';
+import AdminDashboard from './pages/Admindashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import EventDetail from './pages/EventDetail';
 import CreateEvent from './pages/CreateEvent';
 import EditEvent from './pages/EditEvent';
+
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { user } = useAuth();
   
@@ -26,9 +26,9 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   
   return <>{children}</>;
 };
+
 const AppRoutes = () => {
   const { user } = useAuth();
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <Header />
@@ -38,7 +38,6 @@ const AppRoutes = () => {
           <Route path="/auth" element={!user ? <AuthPage /> : <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace />} />
           <Route path="/event/:id" element={<EventDetail />} />
           
-        {/* Student Dashboard Route */}
           <Route
             path="/dashboard"
             element={
@@ -83,15 +82,15 @@ const AppRoutes = () => {
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <EventProvider>
-          <Router>
+    <Router>
+      <ThemeProvider>
+        <AuthProvider>
+          <EventProvider>
             <AppRoutes />
-          </Router>
-        </EventProvider>
-      </AuthProvider>
-    </ThemeProvider>
+          </EventProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </Router>
   );
 }
 

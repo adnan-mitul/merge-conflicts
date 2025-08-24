@@ -15,80 +15,42 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * Role constants
      */
-    const ROLE_ADMIN = 'admin';
-    const ROLE_USER = 'user';
+    const ROLE_ADMIN   = 'admin';
+    const ROLE_STUDENT = 'student';   // ✅ only keep what you need
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
-        'role'
+        'role',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
 
     /**
-     * Default values for attributes.
-     *
-     * @var array
+     * Default role = student
      */
     protected $attributes = [
-        'role' => self::ROLE_USER,
+        'role' => self::ROLE_STUDENT,
     ];
 
-    /**
-     * Check if user has a specific role
-     */
-    public function hasRole(string $role): bool
-    {
-        return $this->role === $role;
-    }
-
-    /**
-     * Check if user has any of the given roles
-     */
-    public function hasAnyRole(array $roles): bool
-    {
-        return in_array($this->role, $roles);
-    }
-
-    /**
-     * Check if user is admin
-     */
+    /** Helpers */
     public function isAdmin(): bool
     {
-        return $this->hasRole(self::ROLE_ADMIN);
+        return $this->role === self::ROLE_ADMIN;
     }
 
-    /**
-     * Check if user is regular user
-     */
-    public function isUser(): bool
+    public function isStudent(): bool
     {
-        return $this->hasRole(self::ROLE_USER);
+        return $this->role === self::ROLE_STUDENT;
     }
 
     /**
@@ -98,43 +60,35 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             self::ROLE_ADMIN,
-            self::ROLE_USER,
+            self::ROLE_STUDENT,
         ];
     }
 
     /**
-     * Get user's display name for role
+     * Role label
      */
     public function getRoleDisplayAttribute(): string
     {
         return match ($this->role) {
-            self::ROLE_ADMIN => 'Administrator',
-            self::ROLE_USER  => 'User',
-            default          => 'Unknown'
+            self::ROLE_ADMIN   => 'Administrator',
+            self::ROLE_STUDENT => 'Student',
+            default            => 'Unknown',
         };
     }
 
-    /**
-     * Scope to get users by role
-     */
+    /** Query scopes */
     public function scopeByRole($query, string $role)
     {
         return $query->where('role', $role);
     }
 
-    /**
-     * Scope to get admin users
-     */
     public function scopeAdmins($query)
     {
         return $query->byRole(self::ROLE_ADMIN);
     }
 
-    /**
-     * Scope to get regular users
-     */
-    public function scopeUsers($query)
+    public function scopeStudents($query)
     {
-        return $query->byRole(self::ROLE_USER);
+        return $query->byRole(self::ROLE_STUDENT);
     }
 }
