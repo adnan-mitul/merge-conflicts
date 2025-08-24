@@ -3,7 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Api\EventController;
 /*
 |--------------------------------------------------------------------------
 | API Routes (Token-based Sanctum)
@@ -34,4 +34,15 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('throttle:6,1');
 
     Route::get('/dashboard', [DashboardController::class, 'index']);
+});
+
+// --------------------
+// ADMIN-ONLY EVENT-CREATE FORM ROUTES
+// --------------------
+Route::middleware(['auth:sanctum', 'admin.only'])->group(function () {
+    Route::get('/events', [EventController::class, 'index']);
+    Route::post('/events', [EventController::class, 'store']);
+    Route::get('/events/{event}', [EventController::class, 'show']);
+    Route::put('/events/{event}', [EventController::class, 'update']);
+    Route::delete('/events/{event}', [EventController::class, 'destroy']);
 });
