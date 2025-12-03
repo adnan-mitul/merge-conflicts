@@ -1,4 +1,4 @@
-# merge-conflicts
+# merge-conflicts - Intra AUST Hackathon Competetion
 
 
 ## 🚀 Installation
